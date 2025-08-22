@@ -1,192 +1,333 @@
-# StreamOmics-Real-time-Genomics-Platform
-# StreamOmics: Real-time Multi-Omics Data Processing Platform
+# Pharmacogenomics ML Platform
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/srikarjy/StreamOmics-Platform)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+A production-scale platform for processing pharmacogenomics data with automated quality scoring, machine learning pipelines, and clinical decision support APIs.
+
+[![Build Status](https://github.com/yourusername/pharmacogenomics-platform/workflows/CI/badge.svg)](https://github.com/yourusername/pharmacogenomics-platform/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/)
 
 ## Overview
 
-StreamOmics is a **production-scale real-time genomics data processing platform** specifically designed for **pharmacogenomics and personalized medicine applications**. The platform processes 1TB+ daily genomics data with 99.9% uptime, enabling precision medicine research and clinical decision support.
+The Pharmacogenomics ML Platform is designed for researchers and clinicians working with pharmacogenomics data. The platform provides automated data collection from NCBI databases, intelligent quality assessment, and machine learning-powered insights for precision medicine research.
 
-### Key Achievements
-- **Real-time Processing**: 1TB+ daily genomics data with <100ms feature serving latency
-- **Domain Expertise**: Specialized pharmacogenomics pipeline for drug-gene interaction analysis
-- **High Performance**: 10,000+ concurrent ML feature requests with 99.9% uptime
-- **AutoML Integration**: 60% reduction in data scientist workflow time through intelligent optimization
-- **Clinical Focus**: HIPAA-compliant architecture for clinical translation
+### Key Features
 
-## Problem Statement
+- **Real-time Data Processing**: Automated collection and processing from NCBI/PubMed APIs
+- **Quality Assessment**: Domain-specific algorithms for research literature evaluation
+- **ML Pipeline**: AutoML capabilities with feature engineering and model serving
+- **Clinical APIs**: RESTful APIs for clinical decision support
+- **Analytics Engine**: Statistical analysis and visualization tools
+- **Production Ready**: Containerized deployment with Kubernetes support
+- **Monitoring**: Comprehensive observability with Prometheus and Grafana
 
-Traditional genomics data processing pipelines are:
-- **Batch-oriented**: Hours/days latency unsuitable for clinical decision support
-- **Generic**: Lack domain-specific quality assessment for pharmacogenomics
-- **Siloed**: Poor integration between genomics, transcriptomics, and drug response data
-- **Non-scalable**: Cannot handle real-time streaming from modern sequencing platforms
+### Target Audience
 
-## Architecture
+- Pharmacogenomics researchers
+- Clinical decision support teams
+- Precision medicine practitioners
+- Bioinformatics professionals
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Data Sources  │    │ Stream Process  │    │  ML Pipeline    │
-│                 │    │                 │    │                 │
-│ • NCBI/PubMed   │───▶│ Apache Kafka    │───▶│ Feature Store   │
-│ • FASTQ Files   │    │ Apache Flink    │    │ AutoML (Ray)    │
-│ • Clinical Data │    │ Redis Cache     │    │ Model Serving   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │                         │
-                              ▼                         ▼
-                    ┌─────────────────┐    ┌─────────────────┐
-                    │   Monitoring    │    │ Clinical APIs   │
-                    │                 │    │                 │
-                    │ • Prometheus    │    │ • Drug Dosing   │
-                    │ • Grafana       │    │ • Risk Scoring  │
-                    │ • DataDog       │    │ • Interaction   │
-                    └─────────────────┘    └─────────────────┘
-```
+## Technical Architecture
 
-## Pharmacogenomics Focus
+### Core Components
 
-### Drug-Gene Interaction Pipeline
-- **CYP450 Variants**: Real-time processing of cytochrome P450 polymorphisms
-- **PGx Annotations**: Integration with PharmGKB, CPIC, and FDA guidelines
-- **Dosing Algorithms**: ML-driven personalized medication dosing
-- **ADR Prediction**: Adverse drug reaction risk assessment
+- **Data Ingestion Layer**: NCBI API integration with intelligent rate limiting and error handling
+- **Quality Scoring Engine**: Automated assessment of pharmacogenomics literature quality
+- **ML Pipeline**: Feature extraction, model training, and inference serving
+- **API Gateway**: RESTful APIs with authentication and rate limiting
+- **Analytics Engine**: Statistical analysis and report generation
+- **Storage Layer**: PostgreSQL for structured data, Redis for caching
 
-### Clinical Translation Features
-- **HIPAA Compliance**: End-to-end encryption and audit logging
-- **Clinical Decision Support**: Real-time pharmacogenomic recommendations
-- **EHR Integration**: HL7 FHIR-compatible APIs for healthcare systems
-- **Regulatory Alignment**: FDA pharmacogenomics guidance compliance
+### Technology Stack
 
-## Technical Stack
-
-### **Data Engineering**
-- **Streaming**: Apache Kafka, Apache Flink
-- **Storage**: MinIO (S3-compatible), PostgreSQL, MongoDB
-- **Caching**: Redis, Apache Cassandra
-- **Orchestration**: Apache Airflow
-
-### **Machine Learning**
-- **AutoML**: Ray + Optuna for hyperparameter optimization
-- **Feature Store**: Feast for real-time feature serving
-- **Model Serving**: FastAPI + Docker for microservice deployment
-- **Monitoring**: MLflow, Weights & Biases
-
-### **Infrastructure**
+- **Backend**: Python 3.11, FastAPI, SQLAlchemy, Celery
+- **Database**: PostgreSQL 15, Redis 7
+- **ML/AI**: scikit-learn, PyTorch, Transformers, MLflow, Ray Serve
 - **Containerization**: Docker, Kubernetes, Helm
-- **CI/CD**: GitHub Actions, ArgoCD
 - **Monitoring**: Prometheus, Grafana, ELK Stack
-- **Cloud**: AWS/GCP with Terraform IaC
+- **CI/CD**: GitHub Actions, Docker Registry
+- **Message Queue**: Apache Kafka, Redis
 
-### **Languages & Frameworks**
-- **Backend**: Python, Java, Scala, SQL
-- **APIs**: FastAPI, REST, GraphQL
-- **Frontend**: React, TypeScript (for dashboards)
+### Integration Points
+
+- NCBI E-utilities API for literature retrieval
+- PubMed API for metadata extraction
+- MLflow for experiment tracking
+- Prometheus for metrics collection
+- External clinical databases (configurable)
 
 ## Quick Start
 
 ### Prerequisites
-- Python 3.9+
-- Docker & Docker Compose
-- AWS CLI (for cloud deployment)
+
+- Docker and Docker Compose
+- Python 3.9 or higher
+- Git
+- 4GB+ RAM recommended
+- NCBI API key (free registration required)
+
+### Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/yourusername/pharmacogenomics-platform.git
+   cd pharmacogenomics-platform
+   ```
+
+2. **Copy environment configuration**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+3. **Start with Docker Compose**:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Verify installation**:
+   ```bash
+   curl http://localhost:8000/health
+   ```
+
+5. **Access the API documentation**:
+   - Swagger UI: http://localhost:8000/docs
+   - ReDoc: http://localhost:8000/redoc
+
+## Configuration
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure the following key variables:
+
+- `NCBI_EMAIL`: Required for NCBI API access (your email address)
+- `NCBI_API_KEY`: Optional but recommended for higher rate limits
+- `DATABASE_URL`: PostgreSQL connection string
+- `REDIS_URL`: Redis connection string
+- `SECRET_KEY`: Application secret key for security
+
+See `.env.example` for complete configuration options and descriptions.
+
+### Database Setup
+
+The platform uses PostgreSQL for primary data storage:
+
+```bash
+# Using Docker Compose (recommended)
+docker-compose up -d postgres
+
+# Manual setup
+createdb pharmacogenomics
+python -m src.storage.migrations upgrade
+```
+
+## Usage Examples
+
+### Basic API Usage
+
+```python
+import requests
+
+# Health check
+response = requests.get("http://localhost:8000/health")
+print(response.json())
+
+# Search pharmacogenomics literature
+response = requests.post(
+    "http://localhost:8000/api/v1/search",
+    json={
+        "query": "warfarin CYP2C9",
+        "max_results": 100,
+        "quality_threshold": 0.7
+    }
+)
+```
+
+### ML Pipeline Usage
+
+```python
+from src.ml.automl_engine import AutoMLEngine
+
+# Initialize AutoML engine
+engine = AutoMLEngine()
+
+# Train model on pharmacogenomics data
+model = engine.train(
+    data_path="data/pgx_dataset.csv",
+    target_column="drug_response",
+    feature_columns=["gene_variant", "drug_dose", "patient_age"]
+)
+
+# Make predictions
+predictions = model.predict(new_data)
+```
+
+## Development
 
 ### Local Development Setup
+
+1. **Create virtual environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
+3. **Set up pre-commit hooks**:
+   ```bash
+   pre-commit install
+   ```
+
+4. **Run development server**:
+   ```bash
+   uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+### Testing
+
+Run the test suite:
+
 ```bash
-# Clone repository
-git clone https://github.com/srikarjy/StreamOmics-Platform.git
-cd StreamOmics-Platform
+# Unit tests
+pytest tests/unit/
 
-# Set up Python environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+# Integration tests
+pytest tests/integration/
 
-# Start local services
-docker-compose up -d
+# All tests with coverage
+pytest --cov=src tests/
 
-# Initialize data pipeline
-python src/data-ingestion/ncbi_collector.py --domain pharmacogenomics --papers 1000
-
-# Start streaming pipeline
-python src/streaming/kafka_producer.py
-python src/streaming/flink_processor.py
-
-# Launch ML pipeline
-python src/ml-pipeline/automl_trainer.py --experiment pharmacogenomics-v1
+# Generate HTML coverage report
+pytest --cov=src --cov-report=html tests/
 ```
 
-### Cloud Deployment (AWS)
-```bash
-# Deploy infrastructure
-cd infrastructure/terraform
-terraform init
-terraform apply
+### Code Quality
 
-# Deploy application
-cd ../kubernetes
-kubectl apply -f manifests/
+The project uses several tools for code quality:
+
+```bash
+# Format code
+black src/ tests/
+isort src/ tests/
+
+# Lint code
+flake8 src/ tests/
+
+# Type checking
+mypy src/
 ```
 
-## Performance Metrics
-
-| Metric | Achievement | Target |
-|--------|-------------|---------|
-| Daily Data Volume | 1.2TB | 1TB+ |
-| Feature Serving Latency | 85ms | <100ms |
-| System Uptime | 99.94% | 99.9% |
-| Concurrent Users | 12,000+ | 10,000+ |
-| ML Pipeline Speedup | 65% | 60% |
-| Cost Reduction | 40% | 30% |
-
-## Research Impact
-
-### Publications & Validation
-- **Wet Lab Validation**: Collaboration with [University Name] for clinical validation
-- **Benchmark Performance**: Top 5% on PharmGKB evaluation datasets
-- **Clinical Trials**: Integration with 3 ongoing precision medicine studies
-
-### Industry Adoption
-- **Biotech Partnerships**: Deployed at 2 precision medicine companies
-- **Academic Collaborations**: 5+ research institutions using the platform
-- **FDA Interaction**: Contributing to pharmacogenomics guidance development
-
-## Clinical Applications
-
-### Real-World Use Cases
-1. **Precision Oncology**: Real-time analysis of tumor genomics for treatment selection
-2. **Cardiovascular Medicine**: Warfarin dosing optimization using genetic variants
-3. **Psychiatry**: Antidepressant selection based on CYP2D6/CYP2C19 status
-4. **Pain Management**: Opioid metabolism prediction for safe prescribing
-
-## Security & Compliance
-
-- **HIPAA Compliance**: Full PHI protection and audit trails
-- **SOC 2 Type II**: Security controls for healthcare data
-- **Encryption**: End-to-end encryption (AES-256)
-- **Access Control**: Role-based access with multi-factor authentication
-
-## Roadmap
-
-### Q2 2025
-- [ ] Multi-ancestry pharmacogenomics support
-- [ ] Real-time drug interaction checking
-- [ ] Clinical decision support API v2.0
-
-### Q3 2025
-- [ ] FDA submission for clinical decision support
-- [ ] Integration with major EHR systems
-- [ ] European Medicines Agency compliance
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+### Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/pharmacogenomics-enhancement`)
-3. Commit your changes (`git commit -m 'Add CYP2D6 variant calling'`)
-4. Push to the branch (`git push origin feature/pharmacogenomics-enhancement`)
-5. Open a Pull Request
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and add tests
+4. Ensure all tests pass: `pytest`
+5. Commit your changes: `git commit -m 'Add amazing feature'`
+6. Push to the branch: `git push origin feature/amazing-feature`
+7. Open a Pull Request
+
+## Deployment
+
+### Docker Deployment
+
+Build and run with Docker:
+
+```bash
+# Build image
+docker build -t pharmacogenomics-platform .
+
+# Run container
+docker run -p 8000:8000 --env-file .env pharmacogenomics-platform
+```
+
+### Kubernetes Deployment
+
+1. **Configure Kubernetes secrets**:
+   ```bash
+   kubectl create secret generic pgx-secrets \
+     --from-literal=database-password=your-password \
+     --from-literal=ncbi-api-key=your-api-key
+   ```
+
+2. **Apply manifests**:
+   ```bash
+   kubectl apply -f k8s/
+   ```
+
+3. **Verify deployment**:
+   ```bash
+   kubectl get pods
+   kubectl get services
+   ```
+
+### Production Considerations
+
+- Use external PostgreSQL database (AWS RDS, Google Cloud SQL)
+- Configure Redis cluster for high availability
+- Set up SSL/TLS certificates
+- Configure monitoring and alerting
+- Implement backup and disaster recovery
+- Use secrets management (Kubernetes secrets, AWS Secrets Manager)
+
+## API Documentation
+
+Once the platform is running, comprehensive API documentation is available:
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+- **OpenAPI Spec**: http://localhost:8000/openapi.json
+
+### Key API Endpoints
+
+- `GET /health` - Health check
+- `POST /api/v1/search` - Search pharmacogenomics literature
+- `GET /api/v1/papers/{paper_id}` - Get paper details
+- `POST /api/v1/ml/predict` - ML model predictions
+- `GET /api/v1/analytics/reports` - Generate analytics reports
+
+## Monitoring and Observability
+
+The platform includes comprehensive monitoring:
+
+- **Metrics**: Prometheus metrics at `/metrics`
+- **Health Checks**: Kubernetes-ready health endpoints
+- **Logging**: Structured logging with configurable levels
+- **Tracing**: Distributed tracing support (optional)
+
+Access monitoring dashboards:
+- Grafana: http://localhost:3000 (admin/admin)
+- Prometheus: http://localhost:9090
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Issues**:
+   - Verify PostgreSQL is running
+   - Check DATABASE_URL in .env file
+   - Ensure database exists and migrations are applied
+
+2. **NCBI API Rate Limiting**:
+   - Verify NCBI_EMAIL is set
+   - Consider getting an API key for higher limits
+   - Check rate limiting configuration
+
+3. **Memory Issues**:
+   - Increase Docker memory limits
+   - Adjust ML model cache size
+   - Monitor memory usage with `docker stats`
+
+### Getting Help
+
+- Check the [Issues](https://github.com/yourusername/pharmacogenomics-platform/issues) page
+- Review the [Documentation](docs/)
+- Contact the development team
 
 ## License
 
@@ -194,18 +335,23 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-- **Author**: Srikar [Your Last Name]
-- **Email**: [your.email@university.edu]
-- **LinkedIn**: [linkedin.com/in/yourprofile]
-- **Portfolio**: [yourportfolio.com]
+- **Project Lead**: [Your Name]
+- **Email**: [your.email@institution.edu]
+- **GitHub**: [@yourusername]
+- **Institution**: [Your Institution]
 
 ## Acknowledgments
 
-- Boston University Department of Biomedical Engineering
-- NCBI for providing genomics data access
-- PharmGKB for pharmacogenomics annotations
-- Open source community for foundational tools
+- NCBI for providing access to genomics databases
+- Open source community for foundational tools and libraries
+- Research collaborators and contributors
+- Clinical partners for domain expertise
 
----
+## Citation
 
-**Star this repository** if you find it useful for your precision medicine research!
+If you use this platform in your research, please cite:
+
+```
+[Your Name] et al. (2024). Pharmacogenomics ML Platform: A Production-Scale 
+System for Precision Medicine Research. [Journal/Conference].
+```

@@ -1,0 +1,160 @@
+# Docker Compose override for development
+# Extends the main docker-compose.yml with development-specific configurations
+
+version: '3.8'
+
+services:
+  # API service with development overrides
+  pharmacogenomics-api:
+    build:
+      target: development
+    environment:
+      - DEBUG=true
+      - RELOAD=true
+      - LOG_LEVEL=DEBUG
+      - PROFILING=true
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Debug port
+    command: >
+      sh -c "python -m uvicorn src.api.main:app 
+             --host 0.0.0.0 --port 8000 --reload --log-level debug"
+
+  # ML server with development overrides
+  pharmacogenomics-ml:
+    build:
+      target: development
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - MODEL_CACHE_SIZE=2
+    volumes:
+      - ./src:/app/src
+      - ./models:/app/models
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+    ports:
+      - "8001:8001"
+      - "5679:5679"  # Debug port
+
+  # Worker with development overrides
+  pharmacogenomics-worker:
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - WORKER_CONCURRENCY=1
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+
+  # Analytics with development overrides
+  pharmacogenomics-analytics:
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ./src:/app/src
+      - ./reports:/app/reports
+      - ./visualizations:/app/visualizations
+      - ./logs:/app/logs
+    ports:
+      - "8002:8002"
+      - "5680:5680"  # Debug port
+
+  # Development database with additional tools
+  postgres:
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=pharmacogenomics
+      - POSTGRES_USER=pgx_user
+      - POSTGRES_PASSWORD=pgx_password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+
+  # Redis with development configuration
+  redis:
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+      - ./docker/redis.dev.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  # Development tools
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgx-pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@pharmacogenomics.org
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - pgx-network
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: pgx-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - pgx-network
+
+  # Code quality tools
+  sonarqube:
+    image: sonarqube:community
+    container_name: pgx-sonarqube
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - pgx-network
+
+  # API documentation
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    container_name: pgx-swagger-ui
+    ports:
+      - "8080:8080"
+    environment:
+      - SWAGGER_JSON=/app/openapi.json
+    volumes:
+      - ./docs/openapi.json:/app/openapi.json
+    networks:
+      - pgx-network
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  sonarqube_data:
+    driver: local
+  sonarqube_extensions:
+    driver: local
+  sonarqube_logs:
+    driver: local

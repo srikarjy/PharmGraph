@@ -1,0 +1,35 @@
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+httpx==0.25.2
+
+# Code Quality
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Development Tools
+ipython==8.18.1
+jupyter==1.0.0
+notebook==7.0.6
+
+# Debugging
+pdb++==0.10.3
+ipdb==0.13.13
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.4.8
+
+# Performance Profiling
+py-spy==0.3.14
+memory-profiler==0.61.0
+
+# Database Tools
+pgcli==4.0.1
+
+# API Testing
+httpie==3.2.2
