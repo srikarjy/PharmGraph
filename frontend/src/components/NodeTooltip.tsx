@@ -38,6 +38,24 @@ export function NodeTooltip({ item }: NodeTooltipProps) {
           <dt>Source annotations</dt>
           <dd>{item.annotation_count}</dd>
         </dl>
+        {item.pharmgkb_ids.length > 0 && (
+          <div className="detail-literature">
+            <dt>PharmGKB clinical annotations</dt>
+            <dd className="pmid-list">
+              {item.pharmgkb_ids.map((id) => (
+                <a
+                  key={id}
+                  href={`https://www.pharmgkb.org/clinicalAnnotation/${id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="pmid-link pmid-link-pharmgkb"
+                >
+                  PharmGKB {id}
+                </a>
+              ))}
+            </dd>
+          </div>
+        )}
         {item.literature.length > 0 && (
           <div className="detail-literature">
             <dt>Supporting literature</dt>

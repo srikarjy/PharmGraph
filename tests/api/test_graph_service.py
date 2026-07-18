@@ -167,6 +167,36 @@ class TestLiteratureAggregation:
         assert service._group_by_drug(rows)["CHEMBL1"]["literature"] == set()
 
 
+class TestPharmgkbAggregation:
+    """Test cases for collecting PharmGKB (ClinPGx) clinical-annotation ids."""
+
+    def test_collects_clinpgx_study_ids_per_drug(self):
+        service = make_service()
+        rows = [
+            {"pgxCategory": "dosage", "evidenceLevel": "3",
+             "datasourceId": "clinpgx", "studyId": "111",
+             "drugs": [{"drugId": "CHEMBL1", "drug": {"id": "CHEMBL1", "name": "D1"}}]},
+            {"pgxCategory": "toxicity", "evidenceLevel": "1A",
+             "datasourceId": "clinpgx", "studyId": "222",
+             "drugs": [{"drugId": "CHEMBL1", "drug": {"id": "CHEMBL1", "name": "D1"}}]},
+        ]
+        assert service._group_by_drug(rows)["CHEMBL1"]["pharmgkb"] == {"111", "222"}
+
+    def test_ignores_study_ids_from_other_datasources(self):
+        service = make_service()
+        rows = [{"pgxCategory": "dosage", "evidenceLevel": "3",
+                  "datasourceId": "other", "studyId": "999",
+                  "drugs": [{"drugId": "CHEMBL1", "drug": {"id": "CHEMBL1", "name": "D1"}}]}]
+        assert service._group_by_drug(rows)["CHEMBL1"]["pharmgkb"] == set()
+
+    def test_collects_clinpgx_study_ids_per_gene(self):
+        service = make_service()
+        rows = [{"pgxCategory": "dosage", "evidenceLevel": "1A",
+                  "datasourceId": "clinpgx", "studyId": "333",
+                  "target": {"id": "ENSG1", "approvedSymbol": "GENE1"}}]
+        assert service._group_by_gene(rows)["ENSG1"]["pharmgkb"] == {"333"}
+
+
 class TestExpandGene:
     """Test cases for GraphExplorerService.expand('gene', ...)."""
 

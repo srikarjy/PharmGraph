@@ -19,7 +19,7 @@ keeping its strongest CPIC annotation.
 - Interactive force-directed interaction graph (click a node to expand it)
 - Deduplication with best-evidence-per-pair aggregation
 - Filter interactions by minimum CPIC evidence tier
-- Supporting PubMed citations on every interaction
+- Supporting PubMed citations and PharmGKB clinical-annotation links on every interaction
 
 ## Run locally
 

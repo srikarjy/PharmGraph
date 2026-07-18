@@ -46,6 +46,20 @@ def _meets_min_evidence(level: Optional[str], min_level: Optional[str]) -> bool:
 # Cap PubMed IDs surfaced per edge so a heavily-studied pair doesn't bloat the payload.
 MAX_LITERATURE_PER_EDGE = 12
 
+# Cap PharmGKB clinical-annotation links per edge for the same reason.
+MAX_PHARMGKB_PER_EDGE = 12
+
+# Open Targets sources all pharmacogenomics rows from PharmGKB (now branded ClinPGx);
+# its studyId is the PharmGKB clinical-annotation accession.
+PHARMGKB_DATASOURCE = "clinpgx"
+
+
+def _pharmgkb_id(row: Dict[str, Any]) -> Optional[str]:
+    """Return the PharmGKB clinical-annotation id for a pgx row, if it has one."""
+    if row.get("datasourceId") == PHARMGKB_DATASOURCE:
+        return row.get("studyId")
+    return None
+
 
 class GraphExplorerService:
     """Aggregates raw Open Targets pharmacogenomics data into a clean interaction graph."""
@@ -162,6 +176,7 @@ class GraphExplorerService:
                 evidence_level=group["evidence_level"], annotation_count=group["count"],
                 confidence=_confidence_for(group["evidence_level"]),
                 literature=sorted(group["literature"])[:MAX_LITERATURE_PER_EDGE],
+                pharmgkb_ids=sorted(group["pharmgkb"])[:MAX_PHARMGKB_PER_EDGE],
             ))
 
         return GraphExpandResponse(
@@ -201,6 +216,7 @@ class GraphExplorerService:
                 evidence_level=group["evidence_level"], annotation_count=group["count"],
                 confidence=_confidence_for(group["evidence_level"]),
                 literature=sorted(group["literature"])[:MAX_LITERATURE_PER_EDGE],
+                pharmgkb_ids=sorted(group["pharmgkb"])[:MAX_PHARMGKB_PER_EDGE],
             ))
 
         return GraphExpandResponse(
@@ -227,6 +243,7 @@ class GraphExplorerService:
                     continue
                 drug_name = (drug_entry.get("drug") or {}).get("name") or drug_id
 
+                pgkb = _pharmgkb_id(row)
                 existing = groups.get(drug_id)
                 if existing is None:
                     groups[drug_id] = {
@@ -235,11 +252,14 @@ class GraphExplorerService:
                         "phenotype_text": row.get("phenotypeText"),
                         "evidence_level": row.get("evidenceLevel"),
                         "literature": set(row.get("literature") or []),
+                        "pharmgkb": {pgkb} if pgkb else set(),
                         "count": 1,
                     }
                 else:
                     existing["count"] += 1
                     existing["literature"].update(row.get("literature") or [])
+                    if pgkb:
+                        existing["pharmgkb"].add(pgkb)
                     if _evidence_rank(row.get("evidenceLevel")) < _evidence_rank(existing["evidence_level"]):
                         existing["pgx_category"] = row.get("pgxCategory")
                         existing["phenotype_text"] = row.get("phenotypeText")
@@ -257,6 +277,7 @@ class GraphExplorerService:
             gene_id = target["id"]
             gene_symbol = target.get("approvedSymbol") or gene_id
 
+            pgkb = _pharmgkb_id(row)
             existing = groups.get(gene_id)
             if existing is None:
                 groups[gene_id] = {
@@ -265,11 +286,14 @@ class GraphExplorerService:
                     "phenotype_text": row.get("phenotypeText"),
                     "evidence_level": row.get("evidenceLevel"),
                     "literature": set(row.get("literature") or []),
+                    "pharmgkb": {pgkb} if pgkb else set(),
                     "count": 1,
                 }
             else:
                 existing["count"] += 1
                 existing["literature"].update(row.get("literature") or [])
+                if pgkb:
+                    existing["pharmgkb"].add(pgkb)
                 if _evidence_rank(row.get("evidenceLevel")) < _evidence_rank(existing["evidence_level"]):
                     existing["pgx_category"] = row.get("pgxCategory")
                     existing["phenotype_text"] = row.get("phenotypeText")

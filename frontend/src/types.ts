@@ -20,6 +20,7 @@ export interface GraphEdge {
   annotation_count: number;
   confidence: number;
   literature: string[];
+  pharmgkb_ids: string[];
 }
 
 export const CPIC_LEVELS = ['1A', '1B', '2A', '2B', '3', '4'] as const;
