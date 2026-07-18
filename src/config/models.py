@@ -105,12 +105,70 @@ class LoggingConfig:
 
 
 @dataclass
+class APIConfig:
+    """API server configuration settings."""
+    cors_origins: list = field(default_factory=lambda: ["*"])
+    allowed_hosts: list = field(default_factory=lambda: ["*"])
+
+    def __post_init__(self):
+        """Validate API configuration."""
+        if not self.cors_origins:
+            raise ValueError("cors_origins cannot be empty")
+        if not self.allowed_hosts:
+            raise ValueError("allowed_hosts cannot be empty")
+
+
+@dataclass
+class OpenTargetsConfig:
+    """Open Targets GraphQL API configuration settings."""
+    base_url: str = "https://api.platform.opentargets.org/api/v4/graphql"
+    timeout_seconds: float = 15.0
+    max_retries: int = 3
+    retry_backoff_factor: float = 2.0
+    requests_per_second: float = 5.0
+    cache_ttl_seconds: int = 3600
+    cache_max_size: int = 512
+
+    def __post_init__(self):
+        """Validate Open Targets configuration."""
+        if not self.base_url.startswith("http"):
+            raise ValueError("base_url must be an http(s) URL")
+        if self.timeout_seconds <= 0:
+            raise ValueError("Timeout must be positive")
+        if self.max_retries < 0:
+            raise ValueError("max_retries cannot be negative")
+        if self.requests_per_second <= 0:
+            raise ValueError("requests_per_second must be positive")
+
+
+@dataclass
+class AuthConfig:
+    """Authentication and authorization configuration settings."""
+    jwt_secret: Optional[str] = None  # None means AuthManager generates one at startup
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+    password_min_length: int = 8
+    max_login_attempts: int = 5
+    lockout_duration_minutes: int = 15
+
+    def __post_init__(self):
+        """Validate auth configuration."""
+        if self.access_token_expire_minutes <= 0:
+            raise ValueError("access_token_expire_minutes must be positive")
+        if self.password_min_length < 4:
+            raise ValueError("password_min_length must be at least 4")
+
+
+@dataclass
 class AppConfig:
     """Main application configuration."""
     ncbi: NCBIConfig
     database: DatabaseConfig
     quality_scoring: QualityScoringConfig
     logging: LoggingConfig
+    api: APIConfig = field(default_factory=APIConfig)
+    open_targets: OpenTargetsConfig = field(default_factory=OpenTargetsConfig)
+    auth: AuthConfig = field(default_factory=AuthConfig)
     environment: str = "development"
     debug: bool = False
     data_directory: str = "data"

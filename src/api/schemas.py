@@ -171,6 +171,66 @@ class BulkDrugGeneResponse(BaseResponse):
     processing_time_ms: float = Field(..., description="Total processing time")
 
 
+# Gene-Protein-Drug Interaction Graph models
+class GraphNodeType(str, Enum):
+    """Node type in the interaction graph."""
+    GENE = "gene"
+    PROTEIN = "protein"
+    DRUG = "drug"
+
+
+class GraphEdgeType(str, Enum):
+    """Edge relationship type in the interaction graph."""
+    ENCODES = "encodes"
+    PGX_INTERACTION = "pgx_interaction"
+
+
+class GraphNode(BaseModel):
+    """A single node (gene, protein, or drug) in the interaction graph."""
+    id: str = Field(..., description="Stable identifier (Ensembl gene ID, UniProt ID, or ChEMBL ID)")
+    type: GraphNodeType = Field(..., description="Node type")
+    label: str = Field(..., description="Display name")
+    subtitle: Optional[str] = Field(None, description="Secondary display text")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional node attributes")
+
+
+class GraphEdge(BaseModel):
+    """A single edge (relationship) between two nodes in the interaction graph."""
+    id: str = Field(..., description="Deterministic edge identifier")
+    source: str = Field(..., description="Source node id")
+    target: str = Field(..., description="Target node id")
+    relationship: GraphEdgeType = Field(..., description="Type of relationship")
+    action_type: Optional[str] = Field(None, description="Raw pharmacogenomic category (dosage/toxicity/metabolism-pk/efficacy)")
+    phenotype: Optional[str] = Field(None, description="Associated phenotype text")
+    evidence_level: Optional[str] = Field(None, description="CPIC evidence level (e.g. 1A, 2B, 3)")
+    annotation_count: int = Field(1, description="Number of raw source annotations aggregated into this edge")
+    confidence: confloat(ge=0.0, le=1.0) = Field(0.3, description="Confidence score derived from evidence level")
+
+
+class GraphSearchCandidate(BaseModel):
+    """A single search result candidate for graph exploration."""
+    id: str = Field(..., description="Entity identifier")
+    entity_type: str = Field(..., description="Open Targets entity type: target or drug")
+    name: str = Field(..., description="Display name")
+    description: Optional[str] = Field(None, description="Short description")
+    score: float = Field(..., description="Search relevance score")
+
+
+class GraphSearchResponse(BaseResponse):
+    """Response for a gene/protein/drug search query."""
+    query: str = Field(..., description="Original search query")
+    candidates: List[GraphSearchCandidate] = Field(default_factory=list, description="Matching entities")
+
+
+class GraphExpandResponse(BaseResponse):
+    """Response for expanding a node into its interaction subgraph."""
+    center_node_id: str = Field(..., description="Id of the node that was expanded")
+    nodes: List[GraphNode] = Field(default_factory=list, description="Nodes in the returned subgraph")
+    edges: List[GraphEdge] = Field(default_factory=list, description="Edges in the returned subgraph")
+    truncated: bool = Field(False, description="Whether results were capped by the limit")
+    total_available: Optional[int] = Field(None, description="Total interactions available before truncation")
+
+
 # Risk Scoring models
 class GeneticVariant(BaseModel):
     """Genetic variant information."""

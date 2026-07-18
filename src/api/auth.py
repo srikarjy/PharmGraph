@@ -82,22 +82,22 @@ class AuthManager:
         self.config = get_config()
         
         # JWT configuration
-        self.secret_key = self.config.get("auth.jwt_secret", self._generate_secret_key())
+        self.secret_key = self.config.auth.jwt_secret or self._generate_secret_key()
         self.algorithm = "HS256"
-        self.access_token_expire_minutes = self.config.get("auth.access_token_expire_minutes", 30)
-        self.refresh_token_expire_days = self.config.get("auth.refresh_token_expire_days", 7)
-        
+        self.access_token_expire_minutes = self.config.auth.access_token_expire_minutes
+        self.refresh_token_expire_days = self.config.auth.refresh_token_expire_days
+
         # Security settings
-        self.password_min_length = self.config.get("auth.password_min_length", 8)
-        self.max_login_attempts = self.config.get("auth.max_login_attempts", 5)
-        self.lockout_duration_minutes = self.config.get("auth.lockout_duration_minutes", 15)
+        self.password_min_length = self.config.auth.password_min_length
+        self.max_login_attempts = self.config.auth.max_login_attempts
+        self.lockout_duration_minutes = self.config.auth.lockout_duration_minutes
         
         # Role-permission mapping
         self.role_permissions = self._setup_role_permissions()
         
         # In-memory user store (in production, use database)
-        self.users = self._create_default_users()
         self.api_keys = {}
+        self.users = self._create_default_users()
         self.login_attempts = {}
         
         # HTTP Bearer security

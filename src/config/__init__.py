@@ -6,6 +6,9 @@ from .models import (
     DatabaseConfig,
     QualityScoringConfig,
     LoggingConfig,
+    APIConfig,
+    OpenTargetsConfig,
+    AuthConfig,
     AppConfig
 )
 from .logging_config import (
@@ -25,9 +28,12 @@ __all__ = [
     'get_config',
     'reload_config',
     'NCBIConfig',
-    'DatabaseConfig', 
+    'DatabaseConfig',
     'QualityScoringConfig',
     'LoggingConfig',
+    'APIConfig',
+    'OpenTargetsConfig',
+    'AuthConfig',
     'AppConfig',
     'get_logger',
     'configure_logging',

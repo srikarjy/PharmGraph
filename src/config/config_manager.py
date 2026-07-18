@@ -6,7 +6,10 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 import logging
 
-from .models import AppConfig, NCBIConfig, DatabaseConfig, QualityScoringConfig, LoggingConfig
+from .models import (
+    AppConfig, NCBIConfig, DatabaseConfig, QualityScoringConfig, LoggingConfig,
+    APIConfig, OpenTargetsConfig, AuthConfig
+)
 
 
 class ConfigError(Exception):
@@ -195,13 +198,28 @@ class ConfigManager:
             # Create logging configuration
             logging_data = config_data.get('logging', {})
             logging_config = LoggingConfig(**logging_data)
-            
+
+            # Create API configuration
+            api_data = config_data.get('api', {})
+            api_config = APIConfig(**api_data)
+
+            # Create Open Targets configuration
+            open_targets_data = config_data.get('open_targets', {})
+            open_targets_config = OpenTargetsConfig(**open_targets_data)
+
+            # Create auth configuration
+            auth_data = config_data.get('auth', {})
+            auth_config = AuthConfig(**auth_data)
+
             # Create main app configuration
             app_data = {
                 'ncbi': ncbi_config,
                 'database': db_config,
                 'quality_scoring': quality_config,
                 'logging': logging_config,
+                'api': api_config,
+                'open_targets': open_targets_config,
+                'auth': auth_config,
                 'environment': config_data.get('environment', 'development'),
                 'debug': config_data.get('debug', False),
                 'data_directory': config_data.get('data_directory', 'data'),

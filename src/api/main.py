@@ -101,14 +101,14 @@ class PharmacogenomicsAPI:
         # CORS middleware
         self.app.add_middleware(
             CORSMiddleware,
-            allow_origins=self.config.get("api.cors.origins", ["*"]),
+            allow_origins=self.config.api.cors_origins,
             allow_credentials=True,
             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allow_headers=["*"],
         )
-        
+
         # Trusted host middleware
-        allowed_hosts = self.config.get("api.allowed_hosts", ["*"])
+        allowed_hosts = self.config.api.allowed_hosts
         if allowed_hosts != ["*"]:
             self.app.add_middleware(
                 TrustedHostMiddleware,
@@ -137,11 +137,13 @@ class PharmacogenomicsAPI:
             # Log request
             logger.info(
                 "Request started",
-                request_id=request_id,
-                method=method,
-                url=url,
-                client_ip=client_ip,
-                user_agent=user_agent
+                extra={
+                    "request_id": request_id,
+                    "method": method,
+                    "url": url,
+                    "client_ip": client_ip,
+                    "user_agent": user_agent,
+                }
             )
             
             try:
@@ -159,9 +161,11 @@ class PharmacogenomicsAPI:
                 # Log response
                 logger.info(
                     "Request completed",
-                    request_id=request_id,
-                    status_code=response.status_code,
-                    duration_ms=round(duration * 1000, 2)
+                    extra={
+                        "request_id": request_id,
+                        "status_code": response.status_code,
+                        "duration_ms": round(duration * 1000, 2),
+                    }
                 )
                 
                 # Add response headers
@@ -181,9 +185,11 @@ class PharmacogenomicsAPI:
                 # Log error
                 logger.error(
                     "Request failed",
-                    request_id=request_id,
-                    error=str(e),
-                    duration_ms=round(duration * 1000, 2),
+                    extra={
+                        "request_id": request_id,
+                        "error": str(e),
+                        "duration_ms": round(duration * 1000, 2),
+                    },
                     exc_info=True
                 )
                 
@@ -358,7 +364,16 @@ class PharmacogenomicsAPI:
             
         except ImportError as e:
             logger.warning(f"Some clinical endpoints not available: {e}")
-        
+
+        # Gene/protein/drug interaction graph explorer
+        from .endpoints import graph as graph_endpoints
+        self.app.include_router(
+            graph_endpoints.router,
+            prefix="/api/v1/graph",
+            tags=["Graph Explorer"],
+            dependencies=[Depends(self.rate_limiter.check_rate_limit)]
+        )
+
         # Admin endpoints (protected)
         try:
             from .endpoints import admin
@@ -381,9 +396,11 @@ class PharmacogenomicsAPI:
             
             logger.warning(
                 "HTTP exception",
-                request_id=request_id,
-                status_code=exc.status_code,
-                detail=exc.detail
+                extra={
+                    "request_id": request_id,
+                    "status_code": exc.status_code,
+                    "detail": exc.detail,
+                }
             )
             
             return JSONResponse(
@@ -404,8 +421,7 @@ class PharmacogenomicsAPI:
             
             logger.error(
                 "Value error",
-                request_id=request_id,
-                error=str(exc),
+                extra={"request_id": request_id, "error": str(exc)},
                 exc_info=True
             )
             
@@ -427,8 +443,7 @@ class PharmacogenomicsAPI:
             
             logger.error(
                 "Unhandled exception",
-                request_id=request_id,
-                error=str(exc),
+                extra={"request_id": request_id, "error": str(exc)},
                 exc_info=True
             )
             
