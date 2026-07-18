@@ -89,7 +89,9 @@ class GraphExplorerService:
             GraphExpandResponse: Subgraph nodes/edges, empty on failure
         """
         try:
-            if node_type == "gene":
+            # "target" is Open Targets' term for a gene and is what search() emits,
+            # so accept it as an alias to keep search -> expand directly composable.
+            if node_type in ("gene", "target"):
                 return await self._expand_gene(node_id, limit)
             if node_type == "drug":
                 return await self._expand_drug(node_id, limit)

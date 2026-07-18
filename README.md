@@ -1,357 +1,151 @@
-# Pharmacogenomics ML Platform
+# PharmGraph
 
-A production-scale platform for processing pharmacogenomics data with automated quality scoring, machine learning pipelines, and clinical decision support APIs.
+**An interactive gene ↔ protein ↔ drug interaction-graph explorer for pharmacogenomics, backed by live [Open Targets](https://platform.opentargets.org/) data.**
 
-[![Build Status](https://github.com/yourusername/pharmacogenomics-platform/workflows/CI/badge.svg)](https://github.com/yourusername/pharmacogenomics-platform/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/)
+[![React 19](https://img.shields.io/badge/react-19-149eca.svg)](https://react.dev/)
 
-## Overview
+Search a gene, protein, or drug and explore its real pharmacogenomic interaction
+network — deduplicated from hundreds of raw clinical-evidence rows and ranked by
+[CPIC](https://cpicpgx.org/) evidence level.
 
-The Pharmacogenomics ML Platform is designed for researchers and clinicians working with pharmacogenomics data. The platform provides automated data collection from NCBI databases, intelligent quality assessment, and machine learning-powered insights for precision medicine research.
+---
 
-### Key Features
+## What this solves
 
-- **Real-time Data Processing**: Automated collection and processing from NCBI/PubMed APIs
-- **Quality Assessment**: Domain-specific algorithms for research literature evaluation
-- **ML Pipeline**: AutoML capabilities with feature engineering and model serving
-- **Clinical APIs**: RESTful APIs for clinical decision support
-- **Analytics Engine**: Statistical analysis and visualization tools
-- **Production Ready**: Containerized deployment with Kubernetes support
-- **Monitoring**: Comprehensive observability with Prometheus and Grafana
+When a patient carries a variant like **CYP2C9**, the clinical question isn't
+"does this one gene affect this one drug." It's *what is the full web of genes,
+proteins, and drugs this variant touches, and how strong is the evidence for each
+link?*
 
-### Target Audience
+Open Targets holds that answer, but returns it as **hundreds of duplicated rows
+per gene** — one per allele, genotype, and study — with no visual surface and no
+evidence ranking. PharmGraph turns that raw, redundant data into a clean,
+evidence-ranked, interactive graph.
 
-- Pharmacogenomics researchers
-- Clinical decision support teams
-- Precision medicine practitioners
-- Bioinformatics professionals
+### Before vs. after (CYP2C9, verified live)
 
-## Technical Architecture
+| Dimension          | Raw Open Targets / toy lookup   | PharmGraph                                |
+| ------------------ | ------------------------------- | ----------------------------------------- |
+| Rows returned      | 343 raw rows, heavily duplicated| **35** unique drug nodes, deduplicated    |
+| Protein identity   | 28 mixed-source protein IDs     | **1** canonical UniProt SwissProt node    |
+| Evidence handling  | none — all rows weighted equally| CPIC-ranked, best annotation per pair     |
+| Relationships shown| single pairwise gene → drug     | full gene ↔ protein ↔ drug network        |
+| Surface            | raw JSON, no UI                 | interactive force-directed graph          |
 
-### Core Components
+The dedup is a ~90% row reduction (343 → 35 entities) that keeps the single
+highest-confidence CPIC annotation per drug–gene pair. Figures above are for
+CYP2C9; the reduction ratio varies by gene.
 
-- **Data Ingestion Layer**: NCBI API integration with intelligent rate limiting and error handling
-- **Quality Scoring Engine**: Automated assessment of pharmacogenomics literature quality
-- **ML Pipeline**: Feature extraction, model training, and inference serving
-- **API Gateway**: RESTful APIs with authentication and rate limiting
-- **Analytics Engine**: Statistical analysis and report generation
-- **Storage Layer**: PostgreSQL for structured data, Redis for caching
+---
 
-### Technology Stack
+## Project status
 
-- **Backend**: Python 3.11, FastAPI, SQLAlchemy, Celery
-- **Database**: PostgreSQL 15, Redis 7
-- **ML/AI**: scikit-learn, PyTorch, Transformers, MLflow, Ray Serve
-- **Containerization**: Docker, Kubernetes, Helm
-- **Monitoring**: Prometheus, Grafana, ELK Stack
-- **CI/CD**: GitHub Actions, Docker Registry
-- **Message Queue**: Apache Kafka, Redis
+This repository began as a broader pharmacogenomics platform. The **actively
+maintained, verified, and demo-able component is the PharmGraph interaction-graph
+explorer** described here. Other modules are experimental and in varying states of
+completeness — see the honest breakdown below.
 
-### Integration Points
+| Component | Path | Status |
+| --- | --- | --- |
+| **Graph explorer API** (Open Targets client, aggregation service, endpoints) | `src/api/graph_service.py`, `src/api/endpoints/graph.py`, `src/data_ingestion/opentargets_client.py` | ✅ Working, 19 unit tests, verified live end-to-end |
+| **Graph explorer frontend** (React 19 + force-directed graph) | `frontend/` | ✅ Working, verified in-browser |
+| **Core API** (FastAPI app, auth, rate limiting, monitoring) | `src/api/` | ✅ Boots and serves the graph explorer |
+| NCBI/PubMed data ingestion | `src/data_ingestion/` | ⚠️ Mostly passing; a few tests failing |
+| ML / AutoML pipeline & model serving | `src/ml/`, `src/api/model_service.py` | 🧪 Experimental, **opt-in** (heavy native deps); not required for the graph explorer |
+| Analytics & reporting | `src/analytics/` | 🧪 Experimental; some test-collection errors |
+| Clinical decision-support endpoints | referenced in `main.py` | 🚧 Scaffolded, not implemented |
 
-- NCBI E-utilities API for literature retrieval
-- PubMed API for metadata extraction
-- MLflow for experiment tracking
-- Prometheus for metrics collection
-- External clinical databases (configurable)
+The ML stack pulls in heavy native dependencies (torch/MLflow) that are not needed
+by the graph explorer and can crash on import in some environments. It is therefore
+**disabled by default** and gated behind `PHARMGRAPH_ENABLE_ML=1`.
 
-## Quick Start
+---
 
-### Prerequisites
+## Quick start (graph explorer)
 
-- Docker and Docker Compose
-- Python 3.9 or higher
-- Git
-- 4GB+ RAM recommended
-- NCBI API key (free registration required)
-
-### Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/yourusername/pharmacogenomics-platform.git
-   cd pharmacogenomics-platform
-   ```
-
-2. **Copy environment configuration**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-3. **Start with Docker Compose**:
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **Verify installation**:
-   ```bash
-   curl http://localhost:8000/health
-   ```
-
-5. **Access the API documentation**:
-   - Swagger UI: http://localhost:8000/docs
-   - ReDoc: http://localhost:8000/redoc
-
-## Configuration
-
-### Environment Variables
-
-Copy `.env.example` to `.env` and configure the following key variables:
-
-- `NCBI_EMAIL`: Required for NCBI API access (your email address)
-- `NCBI_API_KEY`: Optional but recommended for higher rate limits
-- `DATABASE_URL`: PostgreSQL connection string
-- `REDIS_URL`: Redis connection string
-- `SECRET_KEY`: Application secret key for security
-
-See `.env.example` for complete configuration options and descriptions.
-
-### Database Setup
-
-The platform uses PostgreSQL for primary data storage:
+### Backend
 
 ```bash
-# Using Docker Compose (recommended)
-docker-compose up -d postgres
+# 1. Install runtime dependencies (no ML libs needed)
+pip install -r requirements.txt
 
-# Manual setup
-createdb pharmacogenomics
-python -m src.storage.migrations upgrade
+# 2. Run the API — the graph explorer is live at /api/v1/graph
+uvicorn src.api.main:app --reload --port 8000
 ```
 
-## Usage Examples
+- Swagger UI: http://localhost:8000/docs
+- Search:  `GET /api/v1/graph/search?q=CYP2C9`
+- Expand:  `GET /api/v1/graph/expand/gene/ENSG00000138109`
 
-### Basic API Usage
+No API key and no database are required — Open Targets' public GraphQL API is
+unauthenticated.
 
-```python
-import requests
-
-# Health check
-response = requests.get("http://localhost:8000/health")
-print(response.json())
-
-# Search pharmacogenomics literature
-response = requests.post(
-    "http://localhost:8000/api/v1/search",
-    json={
-        "query": "warfarin CYP2C9",
-        "max_results": 100,
-        "quality_threshold": 0.7
-    }
-)
-```
-
-### ML Pipeline Usage
-
-```python
-from src.ml.automl_engine import AutoMLEngine
-
-# Initialize AutoML engine
-engine = AutoMLEngine()
-
-# Train model on pharmacogenomics data
-model = engine.train(
-    data_path="data/pgx_dataset.csv",
-    target_column="drug_response",
-    feature_columns=["gene_variant", "drug_dose", "patient_age"]
-)
-
-# Make predictions
-predictions = model.predict(new_data)
-```
-
-## Development
-
-### Local Development Setup
-
-1. **Create virtual environment**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements-dev.txt
-   ```
-
-3. **Set up pre-commit hooks**:
-   ```bash
-   pre-commit install
-   ```
-
-4. **Run development server**:
-   ```bash
-   uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
-   ```
-
-### Testing
-
-Run the test suite:
+### Frontend
 
 ```bash
-# Unit tests
-pytest tests/unit/
-
-# Integration tests
-pytest tests/integration/
-
-# All tests with coverage
-pytest --cov=src tests/
-
-# Generate HTML coverage report
-pytest --cov=src --cov-report=html tests/
+cd frontend
+npm install
+npm run dev          # Vite dev server, proxies /api to :8000
 ```
 
-### Code Quality
+Then open the printed URL, search **CYP2C9**, and expand the result to render its
+live interaction network.
 
-The project uses several tools for code quality:
+### Enabling the experimental ML stack (optional)
 
 ```bash
-# Format code
-black src/ tests/
-isort src/ tests/
-
-# Lint code
-flake8 src/ tests/
-
-# Type checking
-mypy src/
+pip install -r requirements-ml.txt
+PHARMGRAPH_ENABLE_ML=1 uvicorn src.api.main:app --port 8000
 ```
 
-### Contributing
+---
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and add tests
-4. Ensure all tests pass: `pytest`
-5. Commit your changes: `git commit -m 'Add amazing feature'`
-6. Push to the branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
+## How it works
 
-## Deployment
+Four stages, with the real work in stage 2:
 
-### Docker Deployment
+1. **Fetch live** — `OpenTargetsClient`: an httpx GraphQL client with adaptive
+   rate limiting and TTL response caching, hardened for GraphQL errors returned
+   inside HTTP 200 responses.
+2. **Aggregate** — `GraphExplorerService`: collapses hundreds of duplicated
+   pharmacogenomics rows into deduplicated nodes and edges, keeping the single
+   highest-confidence annotation per drug–gene pair.
+3. **Rank by evidence** — maps the CPIC scale (1A → 4) to per-edge confidence
+   scores, so every link carries a defensible strength.
+4. **Render** — a React force-directed graph: search an entity, expand its
+   network, click any node for detail.
 
-Build and run with Docker:
+### Tech stack
+
+- **Backend:** Python, FastAPI, httpx, Pydantic
+- **Frontend:** React 19, Vite, TypeScript, `react-force-graph-2d`
+- **Data:** Open Targets Platform GraphQL v4 (live, unauthenticated)
+- **Tooling:** pytest, Docker, GitHub Actions
+
+---
+
+## Testing
 
 ```bash
-# Build image
-docker build -t pharmacogenomics-platform .
+# Graph explorer service — the verified core
+pytest tests/api/test_graph_service.py        # 19 passing
 
-# Run container
-docker run -p 8000:8000 --env-file .env pharmacogenomics-platform
+# Broader suite (includes experimental modules with known gaps)
+pytest tests/api tests/config tests/data_ingestion
 ```
 
-### Kubernetes Deployment
+The graph explorer has been verified end-to-end against live Open Targets data
+(searching CYP2C9 expands to a gene, its canonical protein, and its interacting
+drugs — including warfarin) and in-browser via Playwright.
 
-1. **Configure Kubernetes secrets**:
-   ```bash
-   kubectl create secret generic pgx-secrets \
-     --from-literal=database-password=your-password \
-     --from-literal=ncbi-api-key=your-api-key
-   ```
-
-2. **Apply manifests**:
-   ```bash
-   kubectl apply -f k8s/
-   ```
-
-3. **Verify deployment**:
-   ```bash
-   kubectl get pods
-   kubectl get services
-   ```
-
-### Production Considerations
-
-- Use external PostgreSQL database (AWS RDS, Google Cloud SQL)
-- Configure Redis cluster for high availability
-- Set up SSL/TLS certificates
-- Configure monitoring and alerting
-- Implement backup and disaster recovery
-- Use secrets management (Kubernetes secrets, AWS Secrets Manager)
-
-## API Documentation
-
-Once the platform is running, comprehensive API documentation is available:
-
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **OpenAPI Spec**: http://localhost:8000/openapi.json
-
-### Key API Endpoints
-
-- `GET /health` - Health check
-- `POST /api/v1/search` - Search pharmacogenomics literature
-- `GET /api/v1/papers/{paper_id}` - Get paper details
-- `POST /api/v1/ml/predict` - ML model predictions
-- `GET /api/v1/analytics/reports` - Generate analytics reports
-
-## Monitoring and Observability
-
-The platform includes comprehensive monitoring:
-
-- **Metrics**: Prometheus metrics at `/metrics`
-- **Health Checks**: Kubernetes-ready health endpoints
-- **Logging**: Structured logging with configurable levels
-- **Tracing**: Distributed tracing support (optional)
-
-Access monitoring dashboards:
-- Grafana: http://localhost:3000 (admin/admin)
-- Prometheus: http://localhost:9090
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Database Connection Issues**:
-   - Verify PostgreSQL is running
-   - Check DATABASE_URL in .env file
-   - Ensure database exists and migrations are applied
-
-2. **NCBI API Rate Limiting**:
-   - Verify NCBI_EMAIL is set
-   - Consider getting an API key for higher limits
-   - Check rate limiting configuration
-
-3. **Memory Issues**:
-   - Increase Docker memory limits
-   - Adjust ML model cache size
-   - Monitor memory usage with `docker stats`
-
-### Getting Help
-
-- Check the [Issues](https://github.com/yourusername/pharmacogenomics-platform/issues) page
-- Review the [Documentation](docs/)
-- Contact the development team
+---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
-## Contact
+## Author
 
-- **Project Lead**: [Your Name]
-- **Email**: [your.email@institution.edu]
-- **GitHub**: [@yourusername]
-- **Institution**: [Your Institution]
-
-## Acknowledgments
-
-- NCBI for providing access to genomics databases
-- Open source community for foundational tools and libraries
-- Research collaborators and contributors
-- Clinical partners for domain expertise
-
-## Citation
-
-If you use this platform in your research, please cite:
-
-```
-[Your Name] et al. (2024). Pharmacogenomics ML Platform: A Production-Scale 
-System for Precision Medicine Research. [Journal/Conference].
-```
+Srikar J · srikarjy@bu.edu · Boston University

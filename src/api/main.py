@@ -1,6 +1,7 @@
 """FastAPI application for pharmacogenomics ML platform with async request handling and middleware."""
 
 import asyncio
+import os
 import time
 from datetime import datetime
 from typing import Dict, Any, Optional
@@ -20,9 +21,6 @@ import structlog
 
 # Internal imports
 from ..config import get_logger, get_config
-from ..ml.model_server import ModelServer
-from ..ml.model_registry import MLflowModelRegistry
-from .model_service import ModelService
 from .auth import AuthManager, get_current_user
 from .rate_limiter import RateLimiter
 from .monitoring import APIMonitor
@@ -75,18 +73,31 @@ class PharmacogenomicsAPI:
         self.rate_limiter = RateLimiter()
         self.monitor = APIMonitor()
         
-        # Initialize ML components
-        try:
-            self.model_registry = MLflowModelRegistry()
-            self.model_server = ModelServer(self.model_registry)
-            self.model_service = ModelService(self.model_server)
-            logger.info("ML components initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize ML components: {e}")
-            # Create mock components for development
-            self.model_registry = None
-            self.model_server = None
-            self.model_service = None
+        # Initialize ML components. These pull in heavy native ML dependencies
+        # (torch/MLflow) that are not needed by the graph explorer or the core
+        # API, and whose import can crash on some platforms. They are therefore
+        # opt-in: set PHARMGRAPH_ENABLE_ML=1 to load the model-serving stack.
+        # The import is done lazily here so the module imports cleanly without it.
+        self.model_registry = None
+        self.model_server = None
+        self.model_service = None
+        if os.getenv("PHARMGRAPH_ENABLE_ML", "").lower() in ("1", "true", "yes"):
+            try:
+                from ..ml.model_server import ModelServer
+                from ..ml.model_registry import MLflowModelRegistry
+                from .model_service import ModelService
+
+                self.model_registry = MLflowModelRegistry()
+                self.model_server = ModelServer(self.model_registry)
+                self.model_service = ModelService(self.model_server)
+                logger.info("ML components initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize ML components: {e}")
+                self.model_registry = None
+                self.model_server = None
+                self.model_service = None
+        else:
+            logger.info("ML components disabled (set PHARMGRAPH_ENABLE_ML=1 to enable)")
         
         # Setup middleware and routes
         self._setup_middleware()
