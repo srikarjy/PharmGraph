@@ -38,6 +38,24 @@ export function NodeTooltip({ item }: NodeTooltipProps) {
           <dt>Source annotations</dt>
           <dd>{item.annotation_count}</dd>
         </dl>
+        {item.literature.length > 0 && (
+          <div className="detail-literature">
+            <dt>Supporting literature</dt>
+            <dd className="pmid-list">
+              {item.literature.map((pmid) => (
+                <a
+                  key={pmid}
+                  href={`https://pubmed.ncbi.nlm.nih.gov/${pmid}/`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="pmid-link"
+                >
+                  PMID {pmid}
+                </a>
+              ))}
+            </dd>
+          </div>
+        )}
       </div>
     );
   }

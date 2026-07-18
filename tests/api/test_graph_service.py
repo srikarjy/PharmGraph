@@ -4,8 +4,8 @@ import pytest
 from unittest.mock import AsyncMock
 
 from src.api.graph_service import (
-    GraphExplorerService, _evidence_rank, _confidence_for,
-    EVIDENCE_CONFIDENCE, DEFAULT_CONFIDENCE,
+    GraphExplorerService, _evidence_rank, _confidence_for, _meets_min_evidence,
+    EVIDENCE_CONFIDENCE, DEFAULT_CONFIDENCE, MAX_LITERATURE_PER_EDGE,
 )
 from src.api.schemas import GraphNodeType, GraphEdgeType
 from src.data_ingestion.opentargets_client import OpenTargetsResponse
@@ -33,6 +33,26 @@ class TestEvidenceMapping:
     def test_evidence_rank_unknown_is_worst(self):
         assert _evidence_rank(None) > _evidence_rank("4")
         assert _evidence_rank("garbage") > _evidence_rank("4")
+
+
+class TestMinEvidence:
+    """Test cases for the min-evidence threshold helper."""
+
+    def test_no_threshold_admits_everything(self):
+        assert _meets_min_evidence("4", None) is True
+        assert _meets_min_evidence(None, None) is True
+
+    def test_threshold_admits_equal_or_stronger(self):
+        assert _meets_min_evidence("1A", "2A") is True
+        assert _meets_min_evidence("2A", "2A") is True
+
+    def test_threshold_rejects_weaker(self):
+        assert _meets_min_evidence("3", "2A") is False
+        assert _meets_min_evidence("4", "1A") is False
+
+    def test_unknown_level_rejected_when_threshold_set(self):
+        assert _meets_min_evidence(None, "4") is False
+        assert _meets_min_evidence("garbage", "4") is False
 
 
 class TestCanonicalProteinId:
@@ -126,6 +146,27 @@ class TestGroupByGene:
         assert service._group_by_gene(rows) == {}
 
 
+class TestLiteratureAggregation:
+    """Test cases for deduplicating PubMed IDs across aggregated rows."""
+
+    def test_unions_pmids_across_rows_for_same_drug(self):
+        service = make_service()
+        rows = [
+            {"pgxCategory": "dosage", "evidenceLevel": "3", "literature": ["111", "222"],
+             "drugs": [{"drugId": "CHEMBL1", "drug": {"id": "CHEMBL1", "name": "D1"}}]},
+            {"pgxCategory": "toxicity", "evidenceLevel": "1A", "literature": ["222", "333"],
+             "drugs": [{"drugId": "CHEMBL1", "drug": {"id": "CHEMBL1", "name": "D1"}}]},
+        ]
+        groups = service._group_by_drug(rows)
+        assert groups["CHEMBL1"]["literature"] == {"111", "222", "333"}
+
+    def test_missing_literature_yields_empty_set(self):
+        service = make_service()
+        rows = [{"pgxCategory": "dosage", "evidenceLevel": "3",
+                  "drugs": [{"drugId": "CHEMBL1", "drug": {"id": "CHEMBL1", "name": "D1"}}]}]
+        assert service._group_by_drug(rows)["CHEMBL1"]["literature"] == set()
+
+
 class TestExpandGene:
     """Test cases for GraphExplorerService.expand('gene', ...)."""
 
@@ -205,6 +246,61 @@ class TestExpandGene:
         result = await service.expand("protein", "P11712", limit=15)
         assert result.nodes == []
         assert result.edges == []
+
+    @pytest.mark.asyncio
+    async def test_target_alias_expands_like_gene(self):
+        client = AsyncMock()
+        client.get_target_with_pharmacogenomics.return_value = OpenTargetsResponse(
+            success=True,
+            data={"target": {"id": "ENSG1", "approvedSymbol": "GENE1", "approvedName": None,
+                             "proteinIds": [], "pharmacogenomics": [
+                                 {"pgxCategory": "dosage", "evidenceLevel": "1A", "literature": ["1"],
+                                  "drugs": [{"drugId": "CHEMBL1", "drug": {"id": "CHEMBL1", "name": "D1"}}]}]}},
+        )
+        service = make_service(client)
+        result = await service.expand("target", "ENSG1", limit=15)
+        assert any(n.id == "CHEMBL1" for n in result.nodes)
+
+    @pytest.mark.asyncio
+    async def test_min_evidence_filters_weaker_interactions(self):
+        client = AsyncMock()
+        pgx_rows = [
+            {"pgxCategory": "dosage", "evidenceLevel": "1A", "literature": [],
+             "drugs": [{"drugId": "CHEMBL_STRONG", "drug": {"id": "CHEMBL_STRONG", "name": "STRONG"}}]},
+            {"pgxCategory": "dosage", "evidenceLevel": "3", "literature": [],
+             "drugs": [{"drugId": "CHEMBL_WEAK", "drug": {"id": "CHEMBL_WEAK", "name": "WEAK"}}]},
+        ]
+        client.get_target_with_pharmacogenomics.return_value = OpenTargetsResponse(
+            success=True,
+            data={"target": {"id": "ENSG1", "approvedSymbol": "GENE1", "approvedName": None,
+                             "proteinIds": [], "pharmacogenomics": pgx_rows}},
+        )
+        service = make_service(client)
+
+        result = await service.expand("gene", "ENSG1", limit=15, min_evidence="2A")
+
+        drug_ids = {n.id for n in result.nodes if n.type == GraphNodeType.DRUG}
+        assert drug_ids == {"CHEMBL_STRONG"}
+        assert result.total_available == 1
+
+    @pytest.mark.asyncio
+    async def test_edges_carry_capped_sorted_literature(self):
+        client = AsyncMock()
+        many_pmids = [str(9000 + i) for i in range(MAX_LITERATURE_PER_EDGE + 5)]
+        client.get_target_with_pharmacogenomics.return_value = OpenTargetsResponse(
+            success=True,
+            data={"target": {"id": "ENSG1", "approvedSymbol": "GENE1", "approvedName": None,
+                             "proteinIds": [], "pharmacogenomics": [
+                                 {"pgxCategory": "toxicity", "evidenceLevel": "1A", "literature": many_pmids,
+                                  "drugs": [{"drugId": "CHEMBL1", "drug": {"id": "CHEMBL1", "name": "D1"}}]}]}},
+        )
+        service = make_service(client)
+
+        result = await service.expand("gene", "ENSG1", limit=15)
+
+        pgx_edge = next(e for e in result.edges if e.target == "CHEMBL1")
+        assert len(pgx_edge.literature) == MAX_LITERATURE_PER_EDGE
+        assert pgx_edge.literature == sorted(pgx_edge.literature)
 
 
 class TestSearch:

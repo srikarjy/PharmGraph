@@ -1,0 +1,35 @@
+# Render Blueprint for PharmGraph — one API web service + one static frontend.
+# Deploy: push to GitHub, then in Render click "New +" -> "Blueprint" and pick this repo.
+# The graph explorer needs no database and no API key (Open Targets is public).
+services:
+  # ---- Backend API (FastAPI, graph explorer only; ML stack stays disabled) ----
+  - type: web
+    name: pharmgraph-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      # Public read-only demo API; allow the static frontend (any origin) to call it.
+      - key: PHARMGRAPH_CORS_ORIGINS
+        value: "*"
+
+  # ---- Frontend (static React build served by Render's CDN) ----
+  - type: web
+    name: pharmgraph-web
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      # Point the built frontend at the deployed API. After the first deploy,
+      # paste the pharmgraph-api URL here (e.g. https://pharmgraph-api.onrender.com).
+      - key: VITE_API_BASE
+        sync: false
+    routes:
+      # SPA fallback so client-side paths resolve to index.html.
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -205,6 +205,7 @@ class GraphEdge(BaseModel):
     evidence_level: Optional[str] = Field(None, description="CPIC evidence level (e.g. 1A, 2B, 3)")
     annotation_count: int = Field(1, description="Number of raw source annotations aggregated into this edge")
     confidence: confloat(ge=0.0, le=1.0) = Field(0.3, description="Confidence score derived from evidence level")
+    literature: List[str] = Field(default_factory=list, description="Supporting PubMed IDs (deduplicated across aggregated rows)")
 
 
 class GraphSearchCandidate(BaseModel):

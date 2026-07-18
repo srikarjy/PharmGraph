@@ -19,7 +19,10 @@ export interface GraphEdge {
   evidence_level?: string | null;
   annotation_count: number;
   confidence: number;
+  literature: string[];
 }
+
+export const CPIC_LEVELS = ['1A', '1B', '2A', '2B', '3', '4'] as const;
 
 export interface GraphSearchCandidate {
   id: string;

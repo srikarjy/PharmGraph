@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SearchBar } from './components/SearchBar';
 import { GraphCanvas } from './components/GraphCanvas';
 import { Legend } from './components/Legend';
 import { NodeTooltip } from './components/NodeTooltip';
 import { expandNode } from './api/graphClient';
+import { CPIC_LEVELS } from './types';
 import type { GraphSearchCandidate, GraphExpandResponse, GraphNode, GraphEdge } from './types';
 import './App.css';
 
@@ -40,15 +41,18 @@ export default function App() {
   const [hovered, setHovered] = useState<GraphNode | GraphEdge | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [minEvidence, setMinEvidence] = useState<string>('');
+  // The last root ("replace") expansion, so the evidence filter can re-run it.
+  const lastEntryRef = useRef<{ nodeType: 'gene' | 'drug'; nodeId: string } | null>(null);
 
   const runExpand = useCallback(
     async (nodeType: 'gene' | 'drug', nodeId: string, mode: 'replace' | 'merge') => {
       setLoading(true);
       setError(null);
       try {
-        const response = await expandNode(nodeType, nodeId);
+        const response = await expandNode(nodeType, nodeId, { minEvidence: minEvidence || null });
         if (response.nodes.length === 0) {
-          setError(`No pharmacogenomic interactions found for ${nodeId}.`);
+          setError(`No pharmacogenomic interactions found for ${nodeId}${minEvidence ? ` at evidence ${minEvidence} or stronger` : ''}.`);
         }
         setGraphState((prev) => mergeResponse(mode === 'replace' ? null : prev, response));
       } catch (err) {
@@ -58,7 +62,7 @@ export default function App() {
         setLoading(false);
       }
     },
-    []
+    [minEvidence]
   );
 
   const handleSelectCandidate = useCallback(
@@ -68,6 +72,7 @@ export default function App() {
         setError(`Unsupported entity type: ${candidate.entity_type}`);
         return;
       }
+      lastEntryRef.current = { nodeType, nodeId: candidate.id };
       runExpand(nodeType, candidate.id, 'replace');
     },
     [runExpand]
@@ -81,6 +86,19 @@ export default function App() {
     [runExpand]
   );
 
+  // Re-run the current root expansion whenever the evidence filter changes.
+  const didMountRef = useRef(false);
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    const entry = lastEntryRef.current;
+    if (entry) {
+      runExpand(entry.nodeType, entry.nodeId, 'replace');
+    }
+  }, [minEvidence, runExpand]);
+
   return (
     <div className="app">
       <header className="app-header">
@@ -88,7 +106,20 @@ export default function App() {
         <p className="app-subtitle">
           Live pharmacogenomic interaction data from Open Targets (PharmGKB / CPIC evidence)
         </p>
-        <SearchBar onSelect={handleSelectCandidate} />
+        <div className="controls">
+          <SearchBar onSelect={handleSelectCandidate} />
+          <label className="evidence-filter">
+            <span>Min. evidence</span>
+            <select value={minEvidence} onChange={(e) => setMinEvidence(e.target.value)}>
+              <option value="">All levels</option>
+              {CPIC_LEVELS.map((lvl) => (
+                <option key={lvl} value={lvl}>
+                  {lvl} or stronger
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </header>
 
       <main className="app-main">

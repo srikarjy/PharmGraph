@@ -109,10 +109,17 @@ class PharmacogenomicsAPI:
     def _setup_middleware(self):
         """Setup FastAPI middleware."""
         
-        # CORS middleware
+        # CORS middleware. Origins come from PHARMGRAPH_CORS_ORIGINS (comma-separated)
+        # when set, so the deployed frontend's origin can be allowed without a code
+        # change; otherwise fall back to the config default.
+        cors_env = os.getenv("PHARMGRAPH_CORS_ORIGINS")
+        cors_origins = (
+            [o.strip() for o in cors_env.split(",") if o.strip()]
+            if cors_env else self.config.api.cors_origins
+        )
         self.app.add_middleware(
             CORSMiddleware,
-            allow_origins=self.config.api.cors_origins,
+            allow_origins=cors_origins,
             allow_credentials=True,
             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allow_headers=["*"],

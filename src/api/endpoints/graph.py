@@ -47,15 +47,27 @@ async def search(
     return await service.search(q, limit)
 
 
+CPIC_LEVELS = ("1A", "1B", "2A", "2B", "3", "4")
+
+
 @router.get("/expand/{node_type}/{node_id}", response_model=GraphExpandResponse)
 async def expand(
     node_type: str,
     node_id: str,
     limit: int = Query(15, ge=1, le=40, description="Maximum number of interaction partners"),
+    min_evidence: Optional[str] = Query(
+        None,
+        description="Minimum CPIC evidence tier to include (1A strongest .. 4 weakest)",
+    ),
 ):
     """Expand a gene or drug node into its pharmacogenomic interaction subgraph."""
-    if node_type not in ("gene", "drug"):
+    if node_type not in ("gene", "target", "drug"):
         raise HTTPException(status_code=400, detail="node_type must be 'gene' or 'drug'")
+    if min_evidence is not None and min_evidence not in CPIC_LEVELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"min_evidence must be one of {', '.join(CPIC_LEVELS)}",
+        )
 
     service = await get_graph_service()
-    return await service.expand(node_type, node_id, limit)
+    return await service.expand(node_type, node_id, limit, min_evidence)

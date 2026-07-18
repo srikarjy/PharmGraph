@@ -73,6 +73,7 @@ query TargetPgx($id: String!) {
       pgxCategory
       evidenceLevel
       isDirectTarget
+      literature
       drugs { drugId drug { id name } }
     }
   }
@@ -91,6 +92,7 @@ query DrugPgx($id: String!) {
       pgxCategory
       evidenceLevel
       isDirectTarget
+      literature
       target { id approvedSymbol }
     }
   }

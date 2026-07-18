@@ -32,6 +32,21 @@ def _confidence_for(level: Optional[str]) -> float:
     return EVIDENCE_CONFIDENCE.get(level, DEFAULT_CONFIDENCE)
 
 
+def _meets_min_evidence(level: Optional[str], min_level: Optional[str]) -> bool:
+    """Whether `level` is at least as strong as `min_level` on the CPIC scale.
+
+    Lower rank = stronger evidence (1A is rank 0). An unknown/missing level ranks
+    below every named tier, so it is excluded whenever a threshold is set.
+    """
+    if not min_level:
+        return True
+    return _evidence_rank(level) <= _evidence_rank(min_level)
+
+
+# Cap PubMed IDs surfaced per edge so a heavily-studied pair doesn't bloat the payload.
+MAX_LITERATURE_PER_EDGE = 12
+
+
 class GraphExplorerService:
     """Aggregates raw Open Targets pharmacogenomics data into a clean interaction graph."""
 
@@ -77,13 +92,16 @@ class GraphExplorerService:
             logger.error(f"Graph search failed for '{query}': {e}")
             return GraphSearchResponse(query=query, candidates=[])
 
-    async def expand(self, node_type: str, node_id: str, limit: int) -> GraphExpandResponse:
+    async def expand(
+        self, node_type: str, node_id: str, limit: int, min_evidence: Optional[str] = None
+    ) -> GraphExpandResponse:
         """Expand a gene or drug node into its pharmacogenomic interaction subgraph.
 
         Args:
             node_type: 'gene' or 'drug'
             node_id: Ensembl gene ID (for gene) or ChEMBL ID (for drug)
             limit: Maximum number of interaction partners to include
+            min_evidence: If set (e.g. '2A'), drop interactions weaker than this CPIC tier
 
         Returns:
             GraphExpandResponse: Subgraph nodes/edges, empty on failure
@@ -92,16 +110,18 @@ class GraphExplorerService:
             # "target" is Open Targets' term for a gene and is what search() emits,
             # so accept it as an alias to keep search -> expand directly composable.
             if node_type in ("gene", "target"):
-                return await self._expand_gene(node_id, limit)
+                return await self._expand_gene(node_id, limit, min_evidence)
             if node_type == "drug":
-                return await self._expand_drug(node_id, limit)
+                return await self._expand_drug(node_id, limit, min_evidence)
             raise ValueError(f"Unsupported node_type: {node_type}")
 
         except Exception as e:
             logger.error(f"Graph expand failed for {node_type}/{node_id}: {e}")
             return GraphExpandResponse(center_node_id=node_id, nodes=[], edges=[])
 
-    async def _expand_gene(self, ensembl_id: str, limit: int) -> GraphExpandResponse:
+    async def _expand_gene(
+        self, ensembl_id: str, limit: int, min_evidence: Optional[str] = None
+    ) -> GraphExpandResponse:
         result = await self.client.get_target_with_pharmacogenomics(ensembl_id)
         if not result.success or not result.data or not result.data.get("target"):
             return GraphExpandResponse(center_node_id=ensembl_id, nodes=[], edges=[])
@@ -124,10 +144,13 @@ class GraphExplorerService:
                 source=gene_node.id, target=protein_id, relationship=GraphEdgeType.ENCODES,
             ))
 
-        groups = self._group_by_drug(target.get("pharmacogenomics") or [])
+        groups = [
+            g for g in self._group_by_drug(target.get("pharmacogenomics") or []).values()
+            if _meets_min_evidence(g["evidence_level"], min_evidence)
+        ]
         total_available = len(groups)
         top_groups = sorted(
-            groups.values(), key=lambda g: _confidence_for(g["evidence_level"]), reverse=True
+            groups, key=lambda g: _confidence_for(g["evidence_level"]), reverse=True
         )[:limit]
 
         for group in top_groups:
@@ -138,6 +161,7 @@ class GraphExplorerService:
                 action_type=group["pgx_category"], phenotype=group["phenotype_text"],
                 evidence_level=group["evidence_level"], annotation_count=group["count"],
                 confidence=_confidence_for(group["evidence_level"]),
+                literature=sorted(group["literature"])[:MAX_LITERATURE_PER_EDGE],
             ))
 
         return GraphExpandResponse(
@@ -145,7 +169,9 @@ class GraphExplorerService:
             truncated=total_available > limit, total_available=total_available,
         )
 
-    async def _expand_drug(self, chembl_id: str, limit: int) -> GraphExpandResponse:
+    async def _expand_drug(
+        self, chembl_id: str, limit: int, min_evidence: Optional[str] = None
+    ) -> GraphExpandResponse:
         result = await self.client.get_drug_with_pharmacogenomics(chembl_id)
         if not result.success or not result.data or not result.data.get("drug"):
             return GraphExpandResponse(center_node_id=chembl_id, nodes=[], edges=[])
@@ -157,10 +183,13 @@ class GraphExplorerService:
         drug_node = GraphNode(id=drug["id"], type=GraphNodeType.DRUG, label=drug["name"])
         nodes.append(drug_node)
 
-        groups = self._group_by_gene(drug.get("pharmacogenomics") or [])
+        groups = [
+            g for g in self._group_by_gene(drug.get("pharmacogenomics") or []).values()
+            if _meets_min_evidence(g["evidence_level"], min_evidence)
+        ]
         total_available = len(groups)
         top_groups = sorted(
-            groups.values(), key=lambda g: _confidence_for(g["evidence_level"]), reverse=True
+            groups, key=lambda g: _confidence_for(g["evidence_level"]), reverse=True
         )[:limit]
 
         for group in top_groups:
@@ -171,6 +200,7 @@ class GraphExplorerService:
                 action_type=group["pgx_category"], phenotype=group["phenotype_text"],
                 evidence_level=group["evidence_level"], annotation_count=group["count"],
                 confidence=_confidence_for(group["evidence_level"]),
+                literature=sorted(group["literature"])[:MAX_LITERATURE_PER_EDGE],
             ))
 
         return GraphExpandResponse(
@@ -204,10 +234,12 @@ class GraphExplorerService:
                         "pgx_category": row.get("pgxCategory"),
                         "phenotype_text": row.get("phenotypeText"),
                         "evidence_level": row.get("evidenceLevel"),
+                        "literature": set(row.get("literature") or []),
                         "count": 1,
                     }
                 else:
                     existing["count"] += 1
+                    existing["literature"].update(row.get("literature") or [])
                     if _evidence_rank(row.get("evidenceLevel")) < _evidence_rank(existing["evidence_level"]):
                         existing["pgx_category"] = row.get("pgxCategory")
                         existing["phenotype_text"] = row.get("phenotypeText")
@@ -232,10 +264,12 @@ class GraphExplorerService:
                     "pgx_category": row.get("pgxCategory"),
                     "phenotype_text": row.get("phenotypeText"),
                     "evidence_level": row.get("evidenceLevel"),
+                    "literature": set(row.get("literature") or []),
                     "count": 1,
                 }
             else:
                 existing["count"] += 1
+                existing["literature"].update(row.get("literature") or [])
                 if _evidence_rank(row.get("evidenceLevel")) < _evidence_rank(existing["evidence_level"]):
                     existing["pgx_category"] = row.get("pgxCategory")
                     existing["phenotype_text"] = row.get("phenotypeText")
