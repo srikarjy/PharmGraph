@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request, Response, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 import uvicorn
 
@@ -392,6 +393,18 @@ class PharmacogenomicsAPI:
             dependencies=[Depends(self.rate_limiter.check_rate_limit)]
         )
 
+        # Cell-cell communication network inference (ligand-receptor permutation testing)
+        try:
+            from .endpoints import cellcomm as cellcomm_endpoints
+            self.app.include_router(
+                cellcomm_endpoints.router,
+                prefix="/api/v1/cellcomm",
+                tags=["Cell-Cell Communication"],
+                dependencies=[Depends(self.rate_limiter.check_rate_limit)]
+            )
+        except ImportError as e:
+            logger.warning(f"Cell-cell communication endpoints not available: {e}")
+
         # Admin endpoints (protected)
         try:
             from .endpoints import admin
@@ -423,13 +436,13 @@ class PharmacogenomicsAPI:
             
             return JSONResponse(
                 status_code=exc.status_code,
-                content=ErrorResponse(
+                content=jsonable_encoder(ErrorResponse(
                     error="HTTP_ERROR",
                     message=exc.detail,
                     status_code=exc.status_code,
                     request_id=request_id,
                     timestamp=datetime.utcnow()
-                ).dict()
+                ))
             )
         
         @self.app.exception_handler(ValueError)
@@ -445,13 +458,13 @@ class PharmacogenomicsAPI:
             
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                content=ErrorResponse(
+                content=jsonable_encoder(ErrorResponse(
                     error="VALIDATION_ERROR",
                     message=str(exc),
                     status_code=400,
                     request_id=request_id,
                     timestamp=datetime.utcnow()
-                ).dict()
+                ))
             )
         
         @self.app.exception_handler(Exception)
@@ -467,13 +480,13 @@ class PharmacogenomicsAPI:
             
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content=ErrorResponse(
+                content=jsonable_encoder(ErrorResponse(
                     error="INTERNAL_ERROR",
                     message="An internal error occurred",
                     status_code=500,
                     request_id=request_id,
                     timestamp=datetime.utcnow()
-                ).dict()
+                ))
             )
     
     def get_app(self) -> FastAPI:

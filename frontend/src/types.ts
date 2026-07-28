@@ -45,3 +45,48 @@ export interface GraphExpandResponse {
   truncated: boolean;
   total_available?: number | null;
 }
+
+// Cell-cell communication network (ligand-receptor permutation test)
+export interface CellCommNode {
+  id: string;
+  label: string;
+  n_cells: number;
+}
+
+export interface CellCommEdge {
+  id: string;
+  source: string;
+  target: string;
+  ligand: string;
+  receptor: string;
+  ligand_mean_expression: number;
+  receptor_mean_expression: number;
+  interaction_score: number;
+  p_value: number;
+}
+
+export interface CellCommDemoDataset {
+  name: string;
+  description: string;
+  n_cells: number;
+  n_genes: number;
+  cell_types: string[];
+}
+
+export interface CellCommDemoDatasetsResponse {
+  datasets: CellCommDemoDataset[];
+}
+
+export interface CellCommInferResponse {
+  dataset_source: string;
+  cell_type_key: string;
+  n_cells: number;
+  n_genes_tested: number;
+  n_cell_types: number;
+  n_permutations: number;
+  pvalue_threshold: number;
+  nodes: CellCommNode[];
+  edges: CellCommEdge[];
+  n_pairs_tested: number;
+  n_significant: number;
+}

@@ -142,6 +142,31 @@ class OpenTargetsConfig:
 
 
 @dataclass
+class CellCommConfig:
+    """Cell-cell communication inference configuration settings."""
+    max_cells: int = 2000
+    max_genes: int = 500
+    max_cell_types: int = 10
+    max_n_permutations: int = 1000
+    default_n_permutations: int = 200
+    min_cells_per_type: int = 10
+    default_pvalue_threshold: float = 0.05
+
+    def __post_init__(self):
+        """Validate cell-cell communication configuration."""
+        if self.max_cells <= 0 or self.max_genes <= 0 or self.max_cell_types <= 0:
+            raise ValueError("max_cells, max_genes, max_cell_types must be positive")
+        if self.max_n_permutations <= 0:
+            raise ValueError("max_n_permutations must be positive")
+        if not (0 < self.default_n_permutations <= self.max_n_permutations):
+            raise ValueError("default_n_permutations must be in (0, max_n_permutations]")
+        if self.min_cells_per_type < 1:
+            raise ValueError("min_cells_per_type must be at least 1")
+        if not (0 < self.default_pvalue_threshold <= 1):
+            raise ValueError("default_pvalue_threshold must be in (0, 1]")
+
+
+@dataclass
 class AuthConfig:
     """Authentication and authorization configuration settings."""
     jwt_secret: Optional[str] = None  # None means AuthManager generates one at startup
@@ -168,6 +193,7 @@ class AppConfig:
     logging: LoggingConfig
     api: APIConfig = field(default_factory=APIConfig)
     open_targets: OpenTargetsConfig = field(default_factory=OpenTargetsConfig)
+    cellcomm: CellCommConfig = field(default_factory=CellCommConfig)
     auth: AuthConfig = field(default_factory=AuthConfig)
     environment: str = "development"
     debug: bool = False

@@ -233,6 +233,56 @@ class GraphExpandResponse(BaseResponse):
     total_available: Optional[int] = Field(None, description="Total interactions available before truncation")
 
 
+# Cell-Cell Communication Network models
+class CellCommNode(BaseModel):
+    """A single cell-type node in the cell-cell communication network."""
+    id: str = Field(..., description="Cell type name, used as the node id")
+    label: str = Field(..., description="Display name")
+    n_cells: conint(ge=0) = Field(..., description="Number of cells of this type in the dataset")
+
+
+class CellCommEdge(BaseModel):
+    """A single significant ligand-receptor interaction between two cell types."""
+    id: str = Field(..., description="Deterministic edge identifier")
+    source: str = Field(..., description="Sending cell type (expresses the ligand)")
+    target: str = Field(..., description="Receiving cell type (expresses the receptor)")
+    ligand: str = Field(..., description="Ligand gene symbol")
+    receptor: str = Field(..., description="Receptor gene symbol")
+    ligand_mean_expression: float = Field(..., description="Mean ligand expression in the source cell type")
+    receptor_mean_expression: float = Field(..., description="Mean receptor expression in the target cell type")
+    interaction_score: float = Field(..., description="Mean of ligand and receptor mean expression")
+    p_value: confloat(ge=0.0, le=1.0) = Field(..., description="Empirical p-value from label permutation")
+
+
+class CellCommDemoDataset(BaseModel):
+    """Metadata describing a bundled demo dataset."""
+    name: str = Field(..., description="Dataset identifier, used as the `dataset` query param")
+    description: str = Field(..., description="Human-readable description")
+    n_cells: int = Field(..., description="Number of cells")
+    n_genes: int = Field(..., description="Number of genes")
+    cell_types: List[str] = Field(..., description="Cell type labels present in the dataset")
+
+
+class CellCommDemoDatasetsResponse(BaseResponse):
+    """Response listing the bundled demo datasets."""
+    datasets: List[CellCommDemoDataset] = Field(default_factory=list)
+
+
+class CellCommInferResponse(BaseResponse):
+    """Response for a cell-cell communication network inference request."""
+    dataset_source: str = Field(..., description="Demo dataset name, or 'uploaded'")
+    cell_type_key: str = Field(..., description="obs column used as the cell-type label")
+    n_cells: int = Field(..., description="Number of cells in the analyzed dataset")
+    n_genes_tested: int = Field(..., description="Number of ligand/receptor genes matched and tested")
+    n_cell_types: int = Field(..., description="Number of distinct cell types")
+    n_permutations: int = Field(..., description="Number of label permutations used for the p-value test")
+    pvalue_threshold: confloat(gt=0.0, le=1.0) = Field(..., description="Significance threshold applied")
+    nodes: List[CellCommNode] = Field(default_factory=list, description="Cell-type nodes")
+    edges: List[CellCommEdge] = Field(default_factory=list, description="Significant ligand-receptor edges")
+    n_pairs_tested: int = Field(..., description="Number of ligand-receptor pairs tested")
+    n_significant: int = Field(..., description="Number of significant interactions found")
+
+
 # Risk Scoring models
 class GeneticVariant(BaseModel):
     """Genetic variant information."""

@@ -1,0 +1,50 @@
+ligand,receptor,pathway,source
+TNF,TNFRSF1A,TNF signaling,CellPhoneDB v4
+TNF,TNFRSF1B,TNF signaling,CellPhoneDB v4
+IL6,IL6R,IL6 signaling,CellPhoneDB v4
+IL2,IL2RA,IL2 signaling,CellPhoneDB v4
+IL4,IL4R,IL4 signaling,CellPhoneDB v4
+IL10,IL10RA,IL10 signaling,CellPhoneDB v4
+IFNG,IFNGR1,Interferon-gamma signaling,CellPhoneDB v4
+IL1B,IL1R1,IL1 signaling,CellPhoneDB v4
+IL15,IL15RA,IL15 signaling,CellPhoneDB v4
+IL7,IL7R,IL7 signaling,CellPhoneDB v4
+IL18,IL18R1,IL18 signaling,CellPhoneDB v4
+IL21,IL21R,IL21 signaling,CellPhoneDB v4
+IL12A,IL12RB1,IL12 signaling,CellPhoneDB v4
+CCL5,CCR5,Chemokine signaling,CellTalkDB
+CCL5,CCR1,Chemokine signaling,CellTalkDB
+CCL2,CCR2,Chemokine signaling,CellTalkDB
+CCL3,CCR1,Chemokine signaling,CellTalkDB
+CCL4,CCR5,Chemokine signaling,CellTalkDB
+CCL19,CCR7,Chemokine signaling,CellTalkDB
+CCL21,CCR7,Chemokine signaling,CellTalkDB
+CXCL12,CXCR4,Chemokine signaling,CellTalkDB
+CXCL9,CXCR3,Chemokine signaling,CellTalkDB
+CXCL10,CXCR3,Chemokine signaling,CellTalkDB
+CX3CL1,CX3CR1,Chemokine signaling,CellTalkDB
+CD40LG,CD40,Costimulatory signaling,CellPhoneDB v4
+CD80,CD28,Costimulatory signaling,CellPhoneDB v4
+CD86,CD28,Costimulatory signaling,CellPhoneDB v4
+CD80,CTLA4,Checkpoint signaling,CellPhoneDB v4
+CD86,CTLA4,Checkpoint signaling,CellPhoneDB v4
+CD274,PDCD1,Checkpoint signaling,CellPhoneDB v4
+ICOSLG,ICOS,Costimulatory signaling,CellPhoneDB v4
+TNFSF13B,TNFRSF13B,B cell survival signaling,CellPhoneDB v4
+CD70,CD27,Costimulatory signaling,CellPhoneDB v4
+TNFSF9,TNFRSF9,Costimulatory signaling,CellPhoneDB v4
+ICAM1,ITGAL,Adhesion,CellPhoneDB v4
+ICAM1,ITGB2,Adhesion,CellPhoneDB v4
+VCAM1,ITGA4,Adhesion,CellPhoneDB v4
+TGFB1,TGFBR1,TGF-beta signaling,CellPhoneDB v4
+TGFB1,TGFBR2,TGF-beta signaling,CellPhoneDB v4
+VEGFA,FLT1,VEGF signaling,CellPhoneDB v4
+VEGFA,KDR,VEGF signaling,CellPhoneDB v4
+EGF,EGFR,EGF signaling,CellPhoneDB v4
+HGF,MET,HGF signaling,CellPhoneDB v4
+FASLG,FAS,Apoptosis signaling,CellPhoneDB v4
+CSF1,CSF1R,Myeloid growth factor signaling,CellPhoneDB v4
+IL34,CSF1R,Myeloid growth factor signaling,CellPhoneDB v4
+KITLG,KIT,Stem cell factor signaling,CellPhoneDB v4
+FLT3LG,FLT3,Hematopoietic growth factor signaling,CellPhoneDB v4
+SPP1,CD44,Adhesion,CellPhoneDB v4

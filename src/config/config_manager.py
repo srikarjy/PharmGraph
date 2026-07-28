@@ -8,7 +8,7 @@ import logging
 
 from .models import (
     AppConfig, NCBIConfig, DatabaseConfig, QualityScoringConfig, LoggingConfig,
-    APIConfig, OpenTargetsConfig, AuthConfig
+    APIConfig, OpenTargetsConfig, CellCommConfig, AuthConfig
 )
 
 
@@ -207,6 +207,10 @@ class ConfigManager:
             open_targets_data = config_data.get('open_targets', {})
             open_targets_config = OpenTargetsConfig(**open_targets_data)
 
+            # Create cell-cell communication configuration
+            cellcomm_data = config_data.get('cellcomm', {})
+            cellcomm_config = CellCommConfig(**cellcomm_data)
+
             # Create auth configuration
             auth_data = config_data.get('auth', {})
             auth_config = AuthConfig(**auth_data)
@@ -219,6 +223,7 @@ class ConfigManager:
                 'logging': logging_config,
                 'api': api_config,
                 'open_targets': open_targets_config,
+                'cellcomm': cellcomm_config,
                 'auth': auth_config,
                 'environment': config_data.get('environment', 'development'),
                 'debug': config_data.get('debug', False),

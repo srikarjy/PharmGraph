@@ -8,6 +8,7 @@ from .models import (
     LoggingConfig,
     APIConfig,
     OpenTargetsConfig,
+    CellCommConfig,
     AuthConfig,
     AppConfig
 )
@@ -33,6 +34,7 @@ __all__ = [
     'LoggingConfig',
     'APIConfig',
     'OpenTargetsConfig',
+    'CellCommConfig',
     'AuthConfig',
     'AppConfig',
     'get_logger',
